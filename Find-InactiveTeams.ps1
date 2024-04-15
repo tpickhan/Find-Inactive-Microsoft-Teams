@@ -5,14 +5,16 @@
 # created by Thorsten Pickhan
 # Initial script created on 01.12.2022 (12/01/2022)
 # 20231004 - Rewrite script to Managed Identity mode
+# 20240415 - Filter M365 groups to Teams enabled only
 #
-# Version 1.1
+# Version 1.2
 
 # PowerShell 7.2 is required
 # PNP PowerShell is required in Version
 # Microsoft Graph PowerShell in version 2.6.1 required
 # Microsoft.Graph.Authtentication
 # Microsoft.Graph.Reports
+# Microsoft.Graph.Teams
 
 # https://mmsharepoint.wordpress.com/2023/05/04/authentication-in-azure-automation-with-managed-identity-on-sharepoint-and-microsoft-graph/
 # https://thesysadminchannel.com/graph-api-using-a-managed-identity-in-an-automation-runbook/
@@ -171,6 +173,14 @@ $Counter = 1
 #####
 $CheckDate = (Get-Date).adddays(-30)
 
+# Get all Teams enabled M365 Groups
+#
+# Filter Usage Data on Teams enabled M365 groups only
+# Only these groups can be archived
+#
+#####
+$AllTeams = Get-MgTeam
+
 # Check and validate each M365 Group
 #
 #####
@@ -178,6 +188,14 @@ ForEach ($UsageRecord in $UsageData) {
 	Write-Output "Proceed list entry $($Counter) from $($Count)..."
 	if ($UsageRecord.'Is Deleted' -eq "True") {
 		$Counter++
+		continue
+	}
+
+   # Get Group ID and validate if it is Teams enabled
+	$GroupId = $UsageRecord."Group Id"
+	$TeamsEnabled = $AllTeams | Where-Object {$_.Id -eq $GroupId}
+	if (!$TeamsEnabled) {
+		Write-Output "M365 Group with Id $($GroupId) is not Teams enabled- skip this record"
 		continue
 	}
     # Set columne values for SharePoint list entry
@@ -198,7 +216,6 @@ ForEach ($UsageRecord in $UsageData) {
 	$ExchangeMailboxStorageUsedByte = $UsageRecord."Exchange Mailbox Storage Used (Byte)"
 	$SharePointTotalFileCount = $UsageRecord."SharePoint Total File Count"
 	$SharePointSiteStorageUsedByte = $UsageRecord."SharePoint Site Storage Used (Byte)"
-	$GroupId = $UsageRecord."Group Id"
 	$ReportPeriod = $UsageRecord."Report Period"
 
     # Check if there is a last activity date in CSV
