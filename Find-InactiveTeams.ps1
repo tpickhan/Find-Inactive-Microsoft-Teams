@@ -6,6 +6,8 @@
 # Initial script created on 01.12.2022 (12/01/2022)
 # 20231004 - Rewrite script to Managed Identity mode
 # 20240415 - Filter M365 groups to Teams enabled only
+# 20240714 - Edited routine to filter for Teams Enabled M365 Groups
+#            Added Filter skipping Teams which are already archived
 #
 # Version 1.2
 
@@ -173,14 +175,6 @@ $Counter = 1
 #####
 $CheckDate = (Get-Date).adddays(-30)
 
-# Get all Teams enabled M365 Groups
-#
-# Filter Usage Data on Teams enabled M365 groups only
-# Only these groups can be archived
-#
-#####
-$AllTeams = Get-MgTeam
-
 # Check and validate each M365 Group
 #
 #####
@@ -193,11 +187,23 @@ ForEach ($UsageRecord in $UsageData) {
 
    # Get Group ID and validate if it is Teams enabled
 	$GroupId = $UsageRecord."Group Id"
-	$TeamsEnabled = $AllTeams | Where-Object {$_.Id -eq $GroupId}
-	if (!$TeamsEnabled) {
-		Write-Output "M365 Group with Id $($GroupId) is not Teams enabled- skip this record"
-		continue
-	}
+	try {
+        $TeamsEnabled = Get-MgTeam -TeamId $GroupId -ErrorAction Stop
+    }
+    Catch {
+        Write-Output "M365 Group with Id $($GroupId) is not Teams enabled - skip this record"
+        Write-Output "Skipping this M365Group"
+        $Counter++
+        continue
+    }
+    
+    # Check if Team is already archived
+    if ($TeamsEnabled.IsArchived -eq $True) {
+        Write-Output "Teams $($TeamsEnabled.Id) is already archived - skip this record"
+        $Counter++
+        continue
+    }
+
     # Set columne values for SharePoint list entry
 	$ReportRefreshDate = $UsageRecord."Report Refresh Date"
 	$GroupDisplayName = $UsageRecord."Group Display Name"
