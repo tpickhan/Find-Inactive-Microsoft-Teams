@@ -8,11 +8,12 @@
 # 20240415 - Filter M365 groups to Teams enabled only
 # 20240714 - Edited routine to filter for Teams Enabled M365 Groups
 #            Added Filter skipping Teams which are already archived
-#
-# Version 1.2
+# 20260619 - Updated script to use Graph API for enabling/disabling concealed reports and updated Graph API calls to latest version of Microsoft Graph PowerShell SDK
+
+# Version 1.3
 
 # PowerShell 7.2 is required
-# PNP PowerShell is required in Version
+# PNP PowerShell is NOT required anymore
 # Microsoft Graph PowerShell in version 2.6.1 required
 # Microsoft.Graph.Authtentication
 # Microsoft.Graph.Reports
@@ -30,9 +31,12 @@ $DisConcealedDisplayName = "True"
 
 try {
     # Logging in to Azure.
-    Connect-AzAccount -Identity | Out-Null
+    # Connect-AzAccount -Identity | Out-Null
     # Get token and connect to MgGraph
-    Connect-MgGraph -Identity -NoWelcome
+    $ConnectMG = Connect-MgGraph -Identity -NoWelcome -ErrorAction Stop
+    $MGContext = Get-MgContext
+    Write-Output "Connected to Microsoft Graph with tenant $($MGContext.Tenant.Id)
+
 } catch {
     Write-Error -Message $_.Exception
     throw $_.Exception
@@ -44,21 +48,22 @@ try {
 #####
 function SetM365ReportSettings ([bool]$action){
     Write-Output "Setting M365 Report settings..."
-    $HeaderApp = @{
-        Authorization = "$((Get-AzAccessToken -ResourceTypeName MSGraph).type) $((Get-AzAccessToken -ResourceTypeName MSGraph).token)"
-    }
+    #$HeaderApp = @{
+    #    Authorization = "$((Get-AzAccessToken -ResourceTypeName MSGraph).type) $((Get-AzAccessToken -ResourceTypeName MSGraph).token)"
+    #}
 
     # GraphAPI endpoint for report settings
     #
     ###
 
-    $GraphApiUrl = "https://graph.microsoft.com/beta/admin/reportSettings"
+    #$GraphApiUrl = "https://graph.microsoft.com/beta/admin/reportSettings"
 
     # Get current state for DisplayConcealedNames in M365 Usage Reports
     #
     ###
     $FeatureEnabled = $action
-    $ReportSettingsGet = Invoke-RestMethod -Headers $HeaderApp -Uri $GraphApiUrl -ContentType 'application/json' -Method Get
+    #$ReportSettingsGet = Invoke-RestMethod -Headers $HeaderApp -Uri $GraphApiUrl -ContentType 'application/json' -Method Get
+    $ReportSettingsGet = Get-MgAdminReportSetting
     $CurrentStatus = $ReportSettingsGet.displayConcealedNames
     Write-Output "Current State: $($CurrentStatus)"
     Write-Output "Requested State: $($FeatureEnabled)"
@@ -71,22 +76,32 @@ function SetM365ReportSettings ([bool]$action){
         
         if ($FeatureEnabled -eq $true) {
             #Write-Output "Enabling displayConcealedNames to hidde display Name from M365 Groups, Owner and member"
-            $GraphApiBody = "{
-                ""displayConcealedNames"": ""true""
-            }"
-            $ReportSettingsSet = Invoke-RestMethod -Headers $HeaderApp -Uri $GraphApiUrl -Body $GraphApiBody -ContentType 'application/json' -Method Patch
-            $ReportSettingsGet = Invoke-RestMethod -Headers $HeaderApp -Uri $GraphApiUrl -ContentType 'application/json' -Method Get
-            #Write-Output "Setting after update: $($ReportSettingsGet.displayConcealedNames)"
+            <#
+                $GraphApiBody = "{
+                    ""displayConcealedNames"": ""true""
+                }"
+            #>
+            # Update-MgAdminReportSetting
+            #$ReportSettingsSet = Invoke-RestMethod -Headers $HeaderApp -Uri $GraphApiUrl -Body $GraphApiBody -ContentType 'application/json' -Method Patch
+            $ReportSettingsSet = Update-MgAdminReportSetting -DisplayConcealedNames
+            #$ReportSettingsGet = Invoke-RestMethod -Headers $HeaderApp -Uri $GraphApiUrl -ContentType 'application/json' -Method Get
+            $ReportSettingsGet = Get-MgAdminReportSetting
+            Write-Output "Setting after update: $($ReportSettingsGet.displayConcealedNames)"
         }
 
         if ($FeatureEnabled -eq $false) {
             #Write-Output "Disabling displayConcealedNames to display Name from M365 Groups, Owner and member"
-            $GraphApiBody = "{
-                ""displayConcealedNames"": ""false""
-            }"
-            $ReportSettingsSet = Invoke-RestMethod -Headers $HeaderApp -Uri $GraphApiUrl -Body $GraphApiBody -ContentType 'application/json' -Method Patch
-            $ReportSettingsGet = Invoke-RestMethod -Headers $HeaderApp -Uri $GraphApiUrl -ContentType 'application/json' -Method Get
-            #Write-Output "Setting after update: $($ReportSettingsGet.displayConcealedNames)"
+            <#
+                $GraphApiBody = "{
+                    ""displayConcealedNames"": ""false""
+                }"
+            
+                $ReportSettingsSet = Invoke-RestMethod -Headers $HeaderApp -Uri $GraphApiUrl -Body $GraphApiBody -ContentType 'application/json' -Method Patch
+                $ReportSettingsGet = Invoke-RestMethod -Headers $HeaderApp -Uri $GraphApiUrl -ContentType 'application/json' -Method Get
+            #>
+            $ReportSettingsSet = Update-MgAdminReportSetting
+            $ReportSettingsGet = Get-MgAdminReportSetting
+            Write-Output "Setting after update: $($ReportSettingsGet.displayConcealedNames)"
 
         }
     }
