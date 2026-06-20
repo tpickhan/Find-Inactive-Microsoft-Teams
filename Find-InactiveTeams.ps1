@@ -33,11 +33,11 @@ try {
     # Logging in to Azure.
     # Connect-AzAccount -Identity | Out-Null
     # Get token and connect to MgGraph
-    $ConnectMG = Connect-MgGraph -Identity -NoWelcome -ErrorAction Stop
+    Connect-MgGraph -Identity -NoWelcome -ErrorAction Stop
     $MGContext = Get-MgContext
-    Write-Output "Connected to Microsoft Graph with tenant $($MGContext.Tenant.Id)
-
-} catch {
+    Write-Output "Connected to Microsoft Graph with tenant $($MGContext.Tenant.Id)"
+}
+catch {
     Write-Error -Message $_.Exception
     throw $_.Exception
 }
@@ -48,21 +48,10 @@ try {
 #####
 function SetM365ReportSettings ([bool]$action){
     Write-Output "Setting M365 Report settings..."
-    #$HeaderApp = @{
-    #    Authorization = "$((Get-AzAccessToken -ResourceTypeName MSGraph).type) $((Get-AzAccessToken -ResourceTypeName MSGraph).token)"
-    #}
-
-    # GraphAPI endpoint for report settings
-    #
-    ###
-
-    #$GraphApiUrl = "https://graph.microsoft.com/beta/admin/reportSettings"
-
     # Get current state for DisplayConcealedNames in M365 Usage Reports
     #
     ###
     $FeatureEnabled = $action
-    #$ReportSettingsGet = Invoke-RestMethod -Headers $HeaderApp -Uri $GraphApiUrl -ContentType 'application/json' -Method Get
     $ReportSettingsGet = Get-MgAdminReportSetting
     $CurrentStatus = $ReportSettingsGet.displayConcealedNames
     Write-Output "Current State: $($CurrentStatus)"
@@ -75,30 +64,13 @@ function SetM365ReportSettings ([bool]$action){
         ###
         
         if ($FeatureEnabled -eq $true) {
-            #Write-Output "Enabling displayConcealedNames to hidde display Name from M365 Groups, Owner and member"
-            <#
-                $GraphApiBody = "{
-                    ""displayConcealedNames"": ""true""
-                }"
-            #>
             # Update-MgAdminReportSetting
-            #$ReportSettingsSet = Invoke-RestMethod -Headers $HeaderApp -Uri $GraphApiUrl -Body $GraphApiBody -ContentType 'application/json' -Method Patch
             $ReportSettingsSet = Update-MgAdminReportSetting -DisplayConcealedNames
-            #$ReportSettingsGet = Invoke-RestMethod -Headers $HeaderApp -Uri $GraphApiUrl -ContentType 'application/json' -Method Get
             $ReportSettingsGet = Get-MgAdminReportSetting
             Write-Output "Setting after update: $($ReportSettingsGet.displayConcealedNames)"
         }
 
         if ($FeatureEnabled -eq $false) {
-            #Write-Output "Disabling displayConcealedNames to display Name from M365 Groups, Owner and member"
-            <#
-                $GraphApiBody = "{
-                    ""displayConcealedNames"": ""false""
-                }"
-            
-                $ReportSettingsSet = Invoke-RestMethod -Headers $HeaderApp -Uri $GraphApiUrl -Body $GraphApiBody -ContentType 'application/json' -Method Patch
-                $ReportSettingsGet = Invoke-RestMethod -Headers $HeaderApp -Uri $GraphApiUrl -ContentType 'application/json' -Method Get
-            #>
             $ReportSettingsSet = Update-MgAdminReportSetting
             $ReportSettingsGet = Get-MgAdminReportSetting
             Write-Output "Setting after update: $($ReportSettingsGet.displayConcealedNames)"
@@ -119,24 +91,98 @@ $RootURL = "https://xxxxx.sharepoint.com/teams/TeamsAutomation/"
 # Define the SharePoint Online List Id - please edit
 #
 #####
-$SharePointList = "Lists/InactiveTeams"
+$SharePointList = "InactiveTeams"
 
 
 # Connect to SharePoint Online
 #
 #####
 Write-Output "Start connecting to SharePoint Online.."
-Connect-PnPOnline -ManagedIdentity -Url $RootUrl | Out-Null
-$RootConnection = Get-PnPConnection
-
-if ($RootConnection) {
-    Write-Output "SharePoint Online succesfully connected!"
+try {
+    $SPOSiteUrl = Get-AutomationVariable -Name "SPO-SiteURL" -ErrorAction SilentlyContinue
     }
-else {
-    Write-Output "SharePoint Online connection failed!"
-    Write-Output "Script will stop now"
+catch {
+    $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
+    Write-Output "$TimeStamp - RampUp - Error in getting Automation Variable SPo-SiteURL"
     break
 }
+
+#region RampUp Connection Details
+########################################################
+##             Block 1 - Create Base URL
+##          
+########################################################
+# Capture the current timestamp in the format of Year-Month-Day Hour:Minute:Second
+# $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
+# Output the timestamp with a message indicating the start of Azure Variables ramp-up
+# Write-Output "$TimeStamp - RampUp - Azure Variables"
+
+
+# Get SharePoint Root Site Id
+try {
+    $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
+    Write-Output "$TimeStamp - RampUp - Get SharePoint Root Site ID"
+    $SPORoot = Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/v1.0/sites/root" -Method GET -ErrorAction Stop
+    $SPORootId = $SPORoot.Id
+    #Write-Output $SPORootId
+    $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
+    Write-Output "$TimeStamp - RampUp - SharePoint Root Site ID retrieved successfully"
+}
+catch {
+    $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
+    Write-Error "$TimeStamp - RampUp - Failed to get SharePoint Root Site Id!"
+    throw "$TimeStamp - RampUp - Failed to get SharePoint Root Site Id!"
+    Write-Output $Error
+    break
+}
+
+# Get SharePoint Sub Site Id and WebUrl from SPO List
+
+try {
+    $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
+    Write-Output "$TimeStamp - RampUp - Get SharePoint Sub Site ID"
+    #Write-Output "SPOSiteUrl: $($SPOSiteUrl)"
+    #Write-Output "SPORootId: $($SPORootId)"
+    $SPOSiteURLTemp = $SPORootId+":"+$SPOSiteUrl
+    $SPOSub = Get-MgSite -SiteId $SPOSiteURLTemp
+    $SPOSubId = $SPOSub.Id
+}
+catch {
+    $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
+    Write-Output "$TimeStamp - RampUp - Failed to get SharePoint Sub Site Id!"
+    Write-Output $Error
+    break
+}
+
+# Get SharePoint Root Sub Site Lists
+try { 
+    $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
+    Write-Output "$TimeStamp - RampUp - Get required SharePoint Lists"
+    $SPOSubLists = Get-MgSiteList -SiteId $SPOSubId
+}
+catch {
+    $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
+    Write-Error "$TimeStamp - RampUp - Failed to get SharePoint Site Lists!"
+    throw "$TimeStamp - RampUp - Could not connect to SharePoint Site Lists!"
+    Write-Output $Error
+    break
+}
+
+# Get SharePoint Teams Requests List Id and WebUrl
+try { 
+    $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
+    Write-Output "$TimeStamp - RampUp - Get SharePoint Teams Request List"
+    $SPOTeamsInactiveList = $SPOSubLists | Where-Object {$_.name -eq $SharePointList}
+    $SPOTeamsInactiveListId = $SPOTeamsInactiveList.Id
+}
+catch {
+    $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
+    Write-Error "$TimeStamp - RampUp - Failed to get SharePoint Teams Request List!"
+    throw "$TimeStamp - RampUp - Could not connect to SharePoint Teams Request List!"
+    Write-Output $Error
+    break
+}
+
 
 # Define the period of report [D7, D30, D90, D180]
 #
@@ -156,7 +202,17 @@ if ($DisConcealedDisplayName -eq "true") {
 }
 
 try {
+    $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
+    Write-Output "$TimeStamp - RampUp - Start retrieving M365 Groups activity data for period $($PeriodOfReport)"
     $TempReports = Get-MgReportOffice365GroupActivityDetail -Period $PeriodOfReport -OutFile $CsvFileName -ErrorAction Stop
+    $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
+    Write-Output "$TimeStamp - RampUp - M365 Groups activity data retrieved successfully"
+    # If Concelead Report should be disbaled, run function to re-eanble it
+    #
+    #####
+    if ($DisConcealedDisplayName -eq "true") {
+        SetM365ReportSettings -action $True
+    }
 }
 catch {
     # If Concelead Reports should be disbaled, run function to reeanble it
@@ -168,12 +224,7 @@ catch {
     Write-Error -Message $_.Exception
 }
 
-# If Concelead Report should be disbaled, run function to re-eanble it
-#
-#####
-if ($DisConcealedDisplayName -eq "true") {
-    SetM365ReportSettings -action $True
-}
+
 
 # Import M365 Usage report data
 #
@@ -190,6 +241,24 @@ $Counter = 1
 #####
 $CheckDate = (Get-Date).adddays(-30)
 
+# Get all Microsoft Teams
+#
+######
+try {
+    $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
+    Write-Output "$TimeStamp - RampUp - Start retrieving all Microsoft Teams in the tenant"
+    $AllTeams = Get-MgTeam -All -ErrorAction Stop
+    $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
+    Write-Output "$TimeStamp - RampUp - All Microsoft Teams retrieved successfully"
+}
+catch {
+    $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
+    Write-Error "$TimeStamp - RampUp - Failed to retrieve Microsoft Teams in the tenant!"
+    throw "$TimeStamp - RampUp - Failed to retrieve Microsoft Teams in the tenant!"
+    Write-Output $Error
+    break
+}
+
 # Check and validate each M365 Group
 #
 #####
@@ -202,13 +271,12 @@ ForEach ($UsageRecord in $UsageData) {
 
    # Get Group ID and validate if it is Teams enabled
 	$GroupId = $UsageRecord."Group Id"
-	try {
-        $TeamsEnabled = Get-MgTeam -TeamId $GroupId -ErrorAction Stop
-    }
-    Catch {
+    $TeamsEnabled = $AllTeams | Where-Object { $_.Id -eq $GroupId }
+    if ($TeamsEnabled -eq $null) {
         Write-Output "M365 Group with Id $($GroupId) is not Teams enabled - skip this record"
         Write-Output "Skipping this M365Group"
         $Counter++
+        #break
         continue
     }
     
@@ -221,6 +289,7 @@ ForEach ($UsageRecord in $UsageData) {
 
     # Set columne values for SharePoint list entry
 	$ReportRefreshDate = $UsageRecord."Report Refresh Date"
+    $ReportRefreshDate = Get-Date $ReportRefreshDate
 	$GroupDisplayName = $UsageRecord."Group Display Name"
 	$IsDeleted = $UsageRecord."Is Deleted"
 	$OwnerPrincipalName = $UsageRecord."Owner Principal Name"
@@ -245,10 +314,39 @@ ForEach ($UsageRecord in $UsageData) {
 	}
 	else {
 		$LastActiveDate = Get-Date "01.01.1900"
+    }
+    <#
 		try {
 			# No activity Teams should be archived
-            Write-Output "Adding $($GroupDisplayName) to the list..."
-			$AddSPListPerm = Add-PnPListItem -List $SharePointList -Values @{"ReportRefreshDate" = $ReportRefreshDate; "GroupDisplayName" = $GroupDisplayName; "Title" = $GroupDisplayName; "IsDeleted" = $IsDeleted; "GroupOwners" = $OwnerPrincipalName; "LastActivityDate" = $LastActiveDate; "GroupType" = $GroupType; "MemberCount" = $MemberCount; "ExternalMemberCount" = $ExternalMemberCount; "ExchangeReceivedEmailCount" = $ExchangeReceivedEmailCount; "SharePointActiveFileCount" = $SharePointActiveFileCount; "ExchangeMailboxTotalItemCount" = $ExchangeMailboxTotalItemCount; "ExchangeMailboxStorageUsedByte" = $ExchangeMailboxStorageUsedByte; "SharePointSiteStorageUsedByte" = $SharePointSiteStorageUsedByte; "GroupId" = $GroupId; "ReportPeriod" = $ReportPeriod; "ShouldBeArchived" ="True"; "IsArchived" ="False"; "ApprovedToArchive" ="False" } -Connection $RootConnection -ErrorAction Stop
+            $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
+            Write-Output "$($TimeStamp) - Inactive Teams - Adding $($GroupDisplayName) to the list..."
+            $Fields = @{
+                fields = @{
+                    TeamsDeploymentStatus = "Provisioning"
+                    ReportRefreshDate = $ReportRefreshDate
+                    GroupDisplayName = $GroupDisplayName
+                    Title = $GroupDisplayName
+                    IsDeleted = $IsDeleted
+                    GroupOwners = $OwnerPrincipalName
+                    LastActivityDate = $LastActiveDate
+                    GroupType = $GroupType
+                    MemberCount = $MemberCount
+                    ExternalMemberCount = $ExternalMemberCount
+                    ExchangeReceivedEmailCount = $ExchangeReceivedEmailCount
+                    SharePointActiveFileCount = $SharePointActiveFileCount
+                    ExchangeMailboxTotalItemCount = $ExchangeMailboxTotalItemCount
+                    ExchangeMailboxStorageUsedByte = $ExchangeMailboxStorageUsedByte
+                    SharePointSiteStorageUsedByte = $SharePointSiteStorageUsedByte
+                    GroupId = $GroupId
+                    ReportPeriod = $ReportPeriod
+                    ShouldBeArchived = "True"
+                    IsArchived = "False"
+                    ApprovedToArchive = "False"
+                }
+            }
+            #Write-Output "Adding $($GroupDisplayName) to the list..."
+			#$AddSPListPerm = Add-PnPListItem -List $SharePointList -Values @{"ReportRefreshDate" = $ReportRefreshDate; "GroupDisplayName" = $GroupDisplayName; "Title" = $GroupDisplayName; "IsDeleted" = $IsDeleted; "GroupOwners" = $OwnerPrincipalName; "LastActivityDate" = $LastActiveDate; "GroupType" = $GroupType; "MemberCount" = $MemberCount; "ExternalMemberCount" = $ExternalMemberCount; "ExchangeReceivedEmailCount" = $ExchangeReceivedEmailCount; "SharePointActiveFileCount" = $SharePointActiveFileCount; "ExchangeMailboxTotalItemCount" = $ExchangeMailboxTotalItemCount; "ExchangeMailboxStorageUsedByte" = $ExchangeMailboxStorageUsedByte; "SharePointSiteStorageUsedByte" = $SharePointSiteStorageUsedByte; "GroupId" = $GroupId; "ReportPeriod" = $ReportPeriod; "ShouldBeArchived" ="True"; "IsArchived" ="False"; "ApprovedToArchive" ="False" } -Connection $RootConnection -ErrorAction Stop
+            $AddSPListPerm = Add-MgSiteListItem -SiteId $SPOSubId -ListId $SPOTeamsInactiveListId -BodyParameter $Fields -ErrorAction Stop
 		}
 		catch {
 			Write-Output $LastActiveDate
@@ -258,18 +356,55 @@ ForEach ($UsageRecord in $UsageData) {
 		$Counter++
 		continue   
 	}
-
+    #>
     # if Last Activity date exists, check M365 group activity over the last 30 days
 	if ($LastActiveDate -lt $CheckDate){
 		try {
 			# No activity -> Teams should be archived
             Write-Output "Adding $($GroupDisplayName) to the list..."
-			$AddSPListPerm = Add-PnPListItem -List $SharePointList -Values @{"ReportRefreshDate" = $ReportRefreshDate; "GroupDisplayName" = $GroupDisplayName; "Title" = $GroupDisplayName; "IsDeleted" = $IsDeleted; "GroupOwners" = $OwnerPrincipalName; "LastActivityDate" = $LastActiveDate; "GroupType" = $GroupType; "MemberCount" = $MemberCount; "ExternalMemberCount" = $ExternalMemberCount; "ExchangeReceivedEmailCount" = $ExchangeReceivedEmailCount; "SharePointActiveFileCount" = $SharePointActiveFileCount; "ExchangeMailboxTotalItemCount" = $ExchangeMailboxTotalItemCount; "ExchangeMailboxStorageUsedByte" = $ExchangeMailboxStorageUsedByte; "SharePointSiteStorageUsedByte" = $SharePointSiteStorageUsedByte; "GroupId" = $GroupId; "ReportPeriod" = $ReportPeriod; "ShouldBeArchived" ="True"; "IsArchived" ="False"; "ApprovedToArchive" ="False" } -Connection $RootConnection -ErrorAction Stop
+            $Fields = @{
+                fields = @{
+                    ReportRefreshDate = $ReportRefreshDate
+                    GroupDisplayName = $GroupDisplayName
+                    Title = $GroupDisplayName
+                    IsDeleted = $IsDeleted
+                    GroupOwners = $OwnerPrincipalName
+                    LastActivityDate = $LastActiveDate
+                    GroupType = $GroupType
+                    MemberCount = $MemberCount
+                    ExternalMemberCount = $ExternalMemberCount
+                    ExchangeReceivedEmailCount = $ExchangeReceivedEmailCount
+                    SharePointActiveFileCount = $SharePointActiveFileCount
+                    ExchangeMailboxTotalItemCount = $ExchangeMailboxTotalItemCount
+                    ExchangeMailboxStorageUsedByte = $ExchangeMailboxStorageUsedByte
+                    SharePointSiteStorageUsedByte = $SharePointSiteStorageUsedByte
+                    GroupId = $GroupId
+                    ReportPeriod = $ReportPeriod
+                    ShouldBeArchived = 1
+                    IsArchived = 0
+                    ApprovedToArchive = 0
+                }     
+            }
+            <#
+            $Fields = @{
+>>                 fields = @{
+>>                     GroupDisplayName = $GroupDisplayName
+>>                     Title = $GroupDisplayName
+>>                     IsDeleted = $IsDeleted
+>>                     GroupOwners = $OwnerPrincipalName
+>>                     GroupType = $GroupType
+>>                     MemberCount = $MemberCount
+>>                     GroupId = $GroupId
+>>                     ReportPeriod = $ReportPeriod
+>>                 }
+>>             }
+#>
+            $AddSPListPerm = New-MgSiteListItem -SiteId $SPOSubId -ListId $SPOTeamsInactiveListId -BodyParameter $Fields -ErrorAction Stop
 		}
 		catch {
 			Write-Output $LastActiveDate
 			Write-Output $GroupDisplayName
-			Write-Output "Could not add entry to SharePoint List - $($_.Exception.Message)"
+			Write-Output "Could not add entry to SharePoint List"# - $($_.Exception.Message)"
 			break
 		}
 	}
