@@ -418,7 +418,9 @@ ForEach ($UsageRecord in $UsageData) {
 try {
     $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
     Write-Output "$TimeStamp - RampUp - Disconnecting from Microsoft Graph"
-    Disconnect-MgGraph
+    $DisconnectMG = Disconnect-MgGraph
+    $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
+    Write-Output "$TimeStamp - RampUp - Disconnected from Microsoft Graph successfully"
 }
 catch {
     $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
