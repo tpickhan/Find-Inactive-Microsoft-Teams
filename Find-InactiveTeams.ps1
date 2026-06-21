@@ -408,3 +408,19 @@ ForEach ($UsageRecord in $UsageData) {
 
 	$Counter++
 }
+
+#####
+#region Closing connections and clean up
+########################################################
+##             Block 4 - Closing connections and clean up
+##          
+########################################################
+try {
+    $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
+    Write-Output "$TimeStamp - RampUp - Disconnecting from Microsoft Graph"
+    Disconnect-MgGraph
+}
+catch {
+    $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
+    Write-Output "$TimeStamp - RampUp - Error disconnecting from Microsoft Graph: $($_.Exception.Message)"
+}
