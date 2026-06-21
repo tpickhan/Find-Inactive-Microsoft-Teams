@@ -35,7 +35,7 @@ try {
     # Get token and connect to MgGraph
     Connect-MgGraph -Identity -NoWelcome -ErrorAction Stop
     $MGContext = Get-MgContext
-    Write-Output "Connected to Microsoft Graph with tenant $($MGContext.Tenant.Id)"
+    Write-Output "Connected to Microsoft Graph with tenant $($MGContext.TenantId)"
 }
 catch {
     Write-Error -Message $_.Exception
@@ -99,11 +99,11 @@ $SharePointList = "InactiveTeams"
 #####
 Write-Output "Start connecting to SharePoint Online.."
 try {
-    $SPOSiteUrl = Get-AutomationVariable -Name "SPO-SiteURL" -ErrorAction SilentlyContinue
+    $SPOSiteUrl = Get-AutomationVariable -Name "SPOSiteURL" -ErrorAction Stop
     }
 catch {
     $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
-    Write-Output "$TimeStamp - RampUp - Error in getting Automation Variable SPo-SiteURL"
+    Write-Output "$TimeStamp - RampUp - Error in getting Automation Variable SPOSiteURL"
     break
 }
 
@@ -137,6 +137,11 @@ catch {
 }
 
 # Get SharePoint Sub Site Id and WebUrl from SPO List
+if ($SPOSiteUrl -eq $null) {
+    $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
+    Write-Output "$TimeStamp - RampUp - No SharePoint Site URL provided, please check Automation Variable SPOSiteURL"
+    break
+}
 
 try {
     $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
@@ -288,8 +293,7 @@ ForEach ($UsageRecord in $UsageData) {
     }
 
     # Set columne values for SharePoint list entry
-	$ReportRefreshDate = $UsageRecord."Report Refresh Date"
-    $ReportRefreshDate = Get-Date $ReportRefreshDate
+	$ReportRefreshDate = (Get-Date $UsageRecord."Report Refresh Date").ToString("o")
 	$GroupDisplayName = $UsageRecord."Group Display Name"
 	$IsDeleted = $UsageRecord."Is Deleted"
 	$OwnerPrincipalName = $UsageRecord."Owner Principal Name"
@@ -297,23 +301,38 @@ ForEach ($UsageRecord in $UsageData) {
 	$GroupType = $UsageRecord."Group Type"
 	$MemberCount = $UsageRecord."Member Count"
 	$ExternalMemberCount = $UsageRecord."External Member Count"
-	$ExchangeReceivedEmailCount = $UsageRecord."Exchange Received Email Count"
-	$SharePointActiveFileCount = $UsageRecord."SharePoint Active File Count"
-	$YammerPostedMessageCount  = $UsageRecord."Yammer Posted Message Count"
-	$YammerReadMessageCount = $UsageRecord."Yammer Read Message Count"
-	$YammerLikedMessageCount = $UsageRecord."Yammer Liked Message Count"
-	$ExchangeMailboxTotalItemCount = $UsageRecord."Exchange Mailbox Total Item Count"
-	$ExchangeMailboxStorageUsedByte = $UsageRecord."Exchange Mailbox Storage Used (Byte)"
-	$SharePointTotalFileCount = $UsageRecord."SharePoint Total File Count"
-	$SharePointSiteStorageUsedByte = $UsageRecord."SharePoint Site Storage Used (Byte)"
+    if ($UsageRecord.'Exchange Received Email Count'){
+	    $ExchangeReceivedEmailCount = $UsageRecord."Exchange Received Email Count"
+    } else {
+        $ExchangeReceivedEmailCount = 0
+    }
+	if ($UsageRecord."SharePoint Active File Count"){
+	    $SharePointActiveFileCount = $UsageRecord."SharePoint Active File Count"
+    } else {
+        $SharePointActiveFileCount = 0
+    }
+	if ($UsageRecord."Exchange Mailbox Total Item Count"){
+        $ExchangeMailboxTotalItemCount = $UsageRecord."Exchange Mailbox Total Item Count"
+    } else {
+        $ExchangeMailboxTotalItemCount = 0
+    }
+	if ($UsageRecord."Exchange Mailbox Storage Used (Byte)"){
+        $ExchangeMailboxStorageUsedByte = $UsageRecord."Exchange Mailbox Storage Used (Byte)"
+    } else {
+        $ExchangeMailboxStorageUsedByte = 0
+    }
+	if ($UsageRecord."SharePoint Site Storage Used (Byte)"){
+        $SharePointSiteStorageUsedByte = $UsageRecord."SharePoint Site Storage Used (Byte)"
+    } else {
+        $SharePointSiteStorageUsedByte = 0
+    }
 	$ReportPeriod = $UsageRecord."Report Period"
 
     # Check if there is a last activity date in CSV
-	if ($LastActivityDate) {
-		$LastActiveDate = Get-Date $LastActivityDate
-	}
-	else {
-		$LastActiveDate = Get-Date "01.01.1900"
+    if ($null -eq $LastActivityDate) {
+		$LastActiveDate = (Get-Date "01.01.1900").ToString("o")
+    } else {
+        $LastActiveDate = (Get-Date $LastActivityDate).ToString("o")
     }
     <#
 		try {
@@ -364,25 +383,25 @@ ForEach ($UsageRecord in $UsageData) {
             Write-Output "Adding $($GroupDisplayName) to the list..."
             $Fields = @{
                 fields = @{
-                    ReportRefreshDate = $ReportRefreshDate
                     GroupDisplayName = $GroupDisplayName
                     Title = $GroupDisplayName
                     IsDeleted = $IsDeleted
                     GroupOwners = $OwnerPrincipalName
-                    LastActivityDate = $LastActiveDate
                     GroupType = $GroupType
                     MemberCount = $MemberCount
                     ExternalMemberCount = $ExternalMemberCount
+                    GroupId = $GroupId
+                    ReportPeriod = $ReportPeriod
+                    ReportRefreshDate = $ReportRefreshDate
+                    LastActivityDate = $LastActiveDate
                     ExchangeReceivedEmailCount = $ExchangeReceivedEmailCount
                     SharePointActiveFileCount = $SharePointActiveFileCount
                     ExchangeMailboxTotalItemCount = $ExchangeMailboxTotalItemCount
                     ExchangeMailboxStorageUsedByte = $ExchangeMailboxStorageUsedByte
                     SharePointSiteStorageUsedByte = $SharePointSiteStorageUsedByte
-                    GroupId = $GroupId
-                    ReportPeriod = $ReportPeriod
-                    ShouldBeArchived = 1
-                    IsArchived = 0
-                    ApprovedToArchive = 0
+                    ShouldBeArchived = $True
+                    IsArchived = $False
+                    ApprovedToArchive = $False
                 }     
             }
             <#
