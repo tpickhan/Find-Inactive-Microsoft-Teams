@@ -145,9 +145,6 @@ if ($SPOTeamsInactiveList) {
     Write-Output "$TimeStamp - RampUp - No need to create the list, it already exists!"
     Write-Output "$TimeStamp - RampUp - Please check the list and delete it if you want to create a new one with the script!"
     break
-} else {
-    $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
-    Write-Error "$TimeStamp - RampUp - Creating SharePoint Teams Inactive List with name $($SharePointListName)"    
 }
 
 
@@ -163,7 +160,7 @@ if ($SPOTeamsInactiveList) {
 # Create SPO List
 #
 #########
-$TimeStamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+$TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
 Write-Output "$($TimeStamp) - RampUp - Creating SharePoint Online List for managing Inactive Teams"
 $params = @{
     displayName = $SharePointListName
@@ -175,11 +172,11 @@ $params = @{
 }
 try {
     $SPOListInactiveTeams = New-MgSiteList -SiteId $SPOSubId -BodyParameter $params -ErrorAction Stop
-    $TimeStamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
     Write-Output "$($TimeStamp) - RampUp - SharePoint Online List for managing Inactive Teams created."
 
 } catch {
-    $TimeStamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
     Write-Output "$($TimeStamp) - Error creating SharePoint Online List for managing Inactive Teams"
     Write-Output $Error[0]
     break
@@ -192,7 +189,7 @@ try {
 if ($SPOListInactiveTeams){
     $SPOListId = $SPOListInactiveTeams.Id
 
-    $TimeStamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
     Write-Output "$($TimeStamp) - RampUp - Creating required columns for SharePoint Online List"
 
     <#
@@ -236,7 +233,7 @@ if ($SPOListInactiveTeams){
     try {
         $NewSPOColumn = New-MgSiteListColumn -SiteId $SPOSubId -ListId $SPOListId -BodyParameter $params -ErrorAction Stop
     } catch {
-        $TimeStamp = Get-Date -Format "yyyyMMdd-HHmmss"
+        $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
         Write-Output "$($TimeStamp) - Error creating column 'Group Display Name'"
         Write-Output $Error[0]
         break
@@ -261,7 +258,7 @@ if ($SPOListInactiveTeams){
     try {
         $NewSPOColumn = New-MgSiteListColumn -SiteId $SPOSubId -ListId $SPOListId -BodyParameter $params -ErrorAction Stop
     } catch {
-        $TimeStamp = Get-Date -Format "yyyyMMdd-HHmmss"
+        $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
         Write-Output "$($TimeStamp) - Error creating column 'Is Deleted'"
         Write-Output $Error[0]
         break
@@ -286,7 +283,7 @@ if ($SPOListInactiveTeams){
     try {
         $NewSPOColumn = New-MgSiteListColumn -SiteId $SPOSubId -ListId $SPOListId -BodyParameter $params -ErrorAction Stop
     } catch {
-        $TimeStamp = Get-Date -Format "yyyyMMdd-HHmmss"
+        $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
         Write-Output "$($TimeStamp) - Error creating column 'Group Owners'"
         Write-Output $Error[0]
         break
@@ -311,7 +308,7 @@ if ($SPOListInactiveTeams){
     try {
         $NewSPOColumn = New-MgSiteListColumn -SiteId $SPOSubId -ListId $SPOListId -BodyParameter $params -ErrorAction Stop
     } catch {
-        $TimeStamp = Get-Date -Format "yyyyMMdd-HHmmss"
+        $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
         Write-Output "$($TimeStamp) - Error creating column 'Group Type'"
         Write-Output $Error[0]
         break
@@ -333,7 +330,7 @@ if ($SPOListInactiveTeams){
     try {
         $NewSPOColumn = New-MgSiteListColumn -SiteId $SPOSubId -ListId $SPOListId -BodyParameter $params -ErrorAction Stop
     } catch {
-        $TimeStamp = Get-Date -Format "yyyyMMdd-HHmmss"
+        $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
         Write-Output "$($TimeStamp) - Error creating column 'Member Count'"
         Write-Output $Error[0]
         break
@@ -356,7 +353,7 @@ if ($SPOListInactiveTeams){
     try {
         $NewSPOColumn = New-MgSiteListColumn -SiteId $SPOSubId -ListId $SPOListId -BodyParameter $params -ErrorAction Stop
     } catch {
-        $TimeStamp = Get-Date -Format "yyyyMMdd-HHmmss"
+        $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
         Write-Output "$($TimeStamp) - Error creating column 'External Member Count'"
         Write-Output $Error[0]
         break
@@ -381,7 +378,7 @@ if ($SPOListInactiveTeams){
     try {
         $NewSPOColumn = New-MgSiteListColumn -SiteId $SPOSubId -ListId $SPOListId -BodyParameter $params -ErrorAction Stop
     } catch {
-        $TimeStamp = Get-Date -Format "yyyyMMdd-HHmmss"
+        $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
         Write-Output "$($TimeStamp) - Error creating column 'Group Id'"
         Write-Output $Error[0]
         break
@@ -404,7 +401,7 @@ if ($SPOListInactiveTeams){
     try {
         $NewSPOColumn = New-MgSiteListColumn -SiteId $SPOSubId -ListId $SPOListId -BodyParameter $params -ErrorAction Stop
     } catch {
-        $TimeStamp = Get-Date -Format "yyyyMMdd-HHmmss"
+        $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
         Write-Output "$($TimeStamp) - Error creating column 'Report Period'"
         Write-Output $Error[0]
         break
@@ -420,7 +417,6 @@ if ($SPOListInactiveTeams){
         displayName = "Report Refresh Date"
         dateTime = @{
             displayAs = "dateOnly"
-            calendarType = "gregorian"
         }
 
     }
@@ -428,7 +424,7 @@ if ($SPOListInactiveTeams){
     try {
         $NewSPOColumn = New-MgSiteListColumn -SiteId $SPOSubId -ListId $SPOListId -BodyParameter $params -ErrorAction Stop
     } catch {
-        $TimeStamp = Get-Date -Format "yyyyMMdd-HHmmss"
+        $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
         Write-Output "$($TimeStamp) - Error creating column 'Report Refresh Date'"
         Write-Output $Error[0]
         break
@@ -444,7 +440,6 @@ if ($SPOListInactiveTeams){
         displayName = "Last Activity Date"
         dateTime = @{
             displayAs = "dateOnly"
-            calendarType = "gregorian"
         }
 
     }
@@ -452,7 +447,7 @@ if ($SPOListInactiveTeams){
     try {
         $NewSPOColumn = New-MgSiteListColumn -SiteId $SPOSubId -ListId $SPOListId -BodyParameter $params -ErrorAction Stop
     } catch {
-        $TimeStamp = Get-Date -Format "yyyyMMdd-HHmmss"
+        $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
         Write-Output "$($TimeStamp) - Error creating column 'Last Activity Date'"
         Write-Output $Error[0]
         break
@@ -460,45 +455,43 @@ if ($SPOListInactiveTeams){
 
     #Column Should be Archived
     $params = @{
-        description = "Should be Archived"
-        enforceUniqueValues = $false
-        hidden = $false
-        indexed = $false
         name = "ShouldBeArchived"
-        displayName = "Should be Archived"
-        boolean = @{
+        displayName = "Should Be Archived"
+        description = "Should be Archived"
+        boolean = [pscustomobject]@{}
+        required = $false
+        hidden              = $false
+        indexed             = $false
+        enforceUniqueValues = $false
+    } | ConvertTo-Json -Depth 10
 
-        }
-
-    }
-
+    
     try {
-        $NewSPOColumn = New-MgSiteListColumn -SiteId $SPOSubId -ListId $SPOListId -BodyParameter $params -ErrorAction Stop
+        $NewSPOColumn = Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/v1.0/sites/$SPOSubId/lists/$SPOListId/columns" -Method POST -Body $params -ErrorAction Stop
     } catch {
-        $TimeStamp = Get-Date -Format "yyyyMMdd-HHmmss"
-        Write-Output "$($TimeStamp) - Error creating column 'Should be Archived'"
+        $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
+        Write-Output "$($TimeStamp) - Error creating column 'Should Be Archived'"
         Write-Output $Error[0]
         break
     }
 
     # Column Approved to Archive
     $params = @{
-        description = "Approved to Archive"
-        enforceUniqueValues = $false
-        hidden = $false
-        indexed = $false
         name = "ApprovedToArchive"
         displayName = "Approved to Archive"
-        boolean = @{
+        description = "Approved to Archive"
+        boolean = [pscustomobject]@{}
+        required = $false
+        hidden              = $false
+        indexed             = $false
+        enforceUniqueValues = $false
+    } | ConvertTo-Json -Depth 10
 
-        }
-
-    }
-
+    
     try {
-        $NewSPOColumn = New-MgSiteListColumn -SiteId $SPOSubId -ListId $SPOListId -BodyParameter $params -ErrorAction Stop
+        $NewSPOColumn = Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/v1.0/sites/$SPOSubId/lists/$SPOListId/columns" -Method POST -Body $params -ErrorAction Stop
     } catch {
-        $TimeStamp = Get-Date -Format "yyyyMMdd-HHmmss"
+        $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
         Write-Output "$($TimeStamp) - Error creating column 'Approved to Archive'"
         Write-Output $Error[0]
         break
@@ -523,7 +516,7 @@ if ($SPOListInactiveTeams){
     try {
         $NewSPOColumn = New-MgSiteListColumn -SiteId $SPOSubId -ListId $SPOListId -BodyParameter $params -ErrorAction Stop
     } catch {
-        $TimeStamp = Get-Date -Format "yyyyMMdd-HHmmss"
+        $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
         Write-Output "$($TimeStamp) - Error creating column 'Approved by'"
         Write-Output $Error[0]
         break
@@ -531,46 +524,22 @@ if ($SPOListInactiveTeams){
 
     # Column Is Archived
     $params = @{
-        description = "Is Archived"
-        enforceUniqueValues = $false
-        hidden = $false
-        indexed = $false
         name = "IsArchived"
         displayName = "Is Archived"
-        boolean = @{
-
-        }
-
-    }
-
-    try {
-        $NewSPOColumn = New-MgSiteListColumn -SiteId $SPOSubId -ListId $SPOListId -BodyParameter $params -ErrorAction Stop
-    } catch {
-        $TimeStamp = Get-Date -Format "yyyyMMdd-HHmmss"
-        Write-Output "$($TimeStamp) - Error creating column 'Is Archived'"
-        Write-Output $Error[0]
-        break
-    }
-
-    # Column Approved to Archive
-    $params = @{
-        description = "Approved to Archive"
+        description = "Is Archived"
+        boolean = [pscustomobject]@{}
+        required = $false
+        hidden              = $false
+        indexed             = $false
         enforceUniqueValues = $false
-        hidden = $false
-        indexed = $false
-        name = "ApprovedToArchive"
-        displayName = "Approved to Archive"
-        boolean = @{
+    } | ConvertTo-Json -Depth 10
 
-        }
-
-    }
-
+    
     try {
-        $NewSPOColumn = New-MgSiteListColumn -SiteId $SPOSubId -ListId $SPOListId -BodyParameter $params -ErrorAction Stop
+        $NewSPOColumn = Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/v1.0/sites/$SPOSubId/lists/$SPOListId/columns" -Method POST -Body $params -ErrorAction Stop
     } catch {
-        $TimeStamp = Get-Date -Format "yyyyMMdd-HHmmss"
-        Write-Output "$($TimeStamp) - Error creating column 'Approved to Archive'"
+        $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
+        Write-Output "$($TimeStamp) - Error creating column 'Is Archived'"
         Write-Output $Error[0]
         break
     }
@@ -592,7 +561,7 @@ if ($SPOListInactiveTeams){
     try {
         $NewSPOColumn = New-MgSiteListColumn -SiteId $SPOSubId -ListId $SPOListId -BodyParameter $params -ErrorAction Stop
     } catch {
-        $TimeStamp = Get-Date -Format "yyyyMMdd-HHmmss"
+        $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
         Write-Output "$($TimeStamp) - Error creating column 'Exchange Received Email Count'"
         Write-Output $Error[0]
         break
@@ -615,7 +584,7 @@ if ($SPOListInactiveTeams){
     try {
         $NewSPOColumn = New-MgSiteListColumn -SiteId $SPOSubId -ListId $SPOListId -BodyParameter $params -ErrorAction Stop
     } catch {
-        $TimeStamp = Get-Date -Format "yyyyMMdd-HHmmss"
+        $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
         Write-Output "$($TimeStamp) - Error creating column 'Exchange Mailbox Total Item Count'"
         Write-Output $Error[0]
         break
@@ -638,7 +607,7 @@ if ($SPOListInactiveTeams){
     try {
         $NewSPOColumn = New-MgSiteListColumn -SiteId $SPOSubId -ListId $SPOListId -BodyParameter $params -ErrorAction Stop
     } catch {
-        $TimeStamp = Get-Date -Format "yyyyMMdd-HHmmss"
+        $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
         Write-Output "$($TimeStamp) - Error creating column 'Exchange Mailbox Storage Used Byte'"
         Write-Output $Error[0]
         break
@@ -661,7 +630,7 @@ if ($SPOListInactiveTeams){
     try {
         $NewSPOColumn = New-MgSiteListColumn -SiteId $SPOSubId -ListId $SPOListId -BodyParameter $params -ErrorAction Stop
     } catch {
-        $TimeStamp = Get-Date -Format "yyyyMMdd-HHmmss"
+        $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
         Write-Output "$($TimeStamp) - Error creating column 'SharePoint Active File Count'"
         Write-Output $Error[0]
         break
@@ -684,7 +653,7 @@ if ($SPOListInactiveTeams){
     try {
         $NewSPOColumn = New-MgSiteListColumn -SiteId $SPOSubId -ListId $SPOListId -BodyParameter $params -ErrorAction Stop
     } catch {
-        $TimeStamp = Get-Date -Format "yyyyMMdd-HHmmss"
+        $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
         Write-Output "$($TimeStamp) - Error creating column 'SharePoint Site Storage Used Byte'"
         Write-Output $Error[0]
         break
@@ -710,18 +679,18 @@ if ($SPOListInactiveTeams){
     try {
         $NewSPOColumn = New-MgSiteListColumn -SiteId $SPOSubId -ListId $SPOListId -BodyParameter $params -ErrorAction Stop
     } catch {
-        $TimeStamp = Get-Date -Format "yyyyMMdd-HHmmss"
+        $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
         Write-Output "$($TimeStamp) - Error creating column 'Archive Azure Runbook Status'"
         Write-Output $Error[0]
         break
     }
 
-    $TimeStamp = Get-Date -Format "yyyyMMdd-HHmmss"
+    $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
     Write-Output "$($TimeStamp) - Run - New SPO List created for Inactive Teams management with all required columns."
 }
 
 try {
-    $TimeStamp = Get-Date -Format "yyyyMMdd-HHmmss"
+    $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
     Write-Output "$($TimeStamp) - Run - Updating SPO List Display Name for Inactive Teams Management"
     $params = @{
         displayName = "Inactive Teams"
@@ -729,7 +698,7 @@ try {
     $UpdateSPOList = Update-MgSiteList -SiteId $SPOSubId -ListId $SPOListId -BodyParameter $params -ErrorAction Stop
 }
 catch {
-    $TimeStamp = Get-Date -Format "yyyyMMdd-HHmmss"
+    $TimeStamp = ([datetime]::now).tostring("yyyy-MM-dd HH:mm:ss")
     Write-Output "$($TimeStamp) - Run - Error: Error updating SPO List Display Name for Inactive Teams Management"
     Write-Output "$($TimeStamp) - Run - Error: $($_.Exception.Message)"
     Write-Output "$($TimeStamp) - Run - Error: $($_.Exception.StackTrace)"
